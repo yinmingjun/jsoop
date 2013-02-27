@@ -98,7 +98,7 @@ jsoop.getTypeName = function jsoop$getTypeName(thisType) {
     return thisType.__typeName;
 };
 
-jsoop.getShortName = function jsoop$getShortName(thisType) {
+jsoop.getShortTypeName = function jsoop$getShortTypeName(thisType) {
     var fullName = thisType.__typeName;
     var nsIndex = fullName.lastIndexOf('.');
     if (nsIndex > 0) {

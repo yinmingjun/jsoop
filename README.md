@@ -24,8 +24,120 @@ with Script#'s original's javascript runtime lib.
 
 ## How it work
 
-jsoop is a node.js javascript module, and it puts __typeName, __class, __baseType, 
-__interfaces information into class type(function).
+jsoop is a node.js javascript module, and it puts __typeName, __baseType, __interfaces,
+__modules RTTI into class type(function), so when new a class intance, it bind all base
+member into derived class's prototype, and so on.
+
+All the RTTI is transparent maintained, so it's load is easy to estimate.
+
+## Samples
+
+    //namespace
+
+    var unitTest = {};
+
+    //////////////////////////////////////////////////////////////////////////////
+    //enum unitTest.DemoEnum
+    unitTest.DemoEnum = function unitTest_DemoEnum() {
+        throw jsoop.errorNotImplemented();
+    };
+
+    unitTest.DemoEnum.prototype = {
+        val1: 1,
+        val2: 2,
+        val3: 3
+    };
+
+    jsoop.registerEnum(jsoop.setTypeName(unitTest.DemoEnum, 'unitTest.DemoEnum'));
+
+
+    //////////////////////////////////////////////////////////////////////////////
+    //interface unitTest.DemoIntf
+    unitTest.IDemoIntf = function unitTest_IDemoIntf() {
+    };
+
+    unitTest.IDemoIntf.prototype = {
+    };
+
+    jsoop.registerInterface(jsoop.setTypeName(unitTest.IDemoIntf, 'unitTest.IDemoIntf'));
+
+    //////////////////////////////////////////////////////////////////////////////
+    //interface unitTest.DemoIntf2
+    unitTest.IDemoIntf2 = function unitTest_IDemoIntf2() {
+    };
+
+    unitTest.IDemoIntf2.prototype = {
+    };
+
+    jsoop.registerInterface(jsoop.setTypeName(unitTest.IDemoIntf2, 'unitTest.IDemoIntf2'));
+
+    //////////////////////////////////////////////////////////////////////////////
+    //module unitTest.DemoMod
+    unitTest.DemoMod = function unitTest_DemoMod() {
+    };
+
+    function unitTest_DemoMod$modFoo() {
+        return 'unitTest.DemoMod';
+    }
+
+    unitTest.DemoMod.prototype = {
+        modFoo: unitTest_DemoMod$modFoo
+    };
+
+    jsoop.registerModule(jsoop.setTypeName(unitTest.DemoMod, 'unitTest.DemoMod'));
+
+    //////////////////////////////////////////////////////////////////////////////
+    //module unitTest.DemoMod
+    unitTest.DemoMod2 = function unitTest_DemoMod2() {
+    };
+
+    function unitTest_DemoMod2$mod2Foo() {
+        return 'unitTest.DemoMod2';
+    }
+
+    unitTest.DemoMod2.prototype = {
+        mod2Foo: unitTest_DemoMod2$mod2Foo
+    };
+
+    jsoop.registerModule(jsoop.setTypeName(unitTest.DemoMod2, 'unitTest.DemoMod2'));
+
+    //////////////////////////////////////////////////////////////////////////////
+    //class unitTest.DemoBase
+    unitTest.DemoBase = function unitTest_DemoBase() {
+    };
+
+
+    function unitTest_DemoBase$foo() {
+        return 'unitTest.DemoBase';
+    }
+
+    unitTest.DemoBase.prototype = {
+        foo: unitTest_DemoBase$foo
+    };
+
+    jsoop.registerClass(jsoop.setTypeName(unitTest.DemoBase, 'unitTest.DemoBase'), null, [unitTest.IDemoIntf, unitTest.IDemoIntf2], [unitTest.DemoMod, unitTest.DemoMod2]);
+
+    //////////////////////////////////////////////////////////////////////////////
+    //class unitTest.Demo
+    unitTest.Demo = function unitTest_Demo() {
+        jsoop.initializeBase(unitTest.Demo, this);
+    };
+
+
+    function unitTest_Demo$foo() {
+        return 'unitTest.Demo';
+    }
+
+    function unitTest_Demo$baseFoo() {
+        return jsoop.callBaseMethod(unitTest.Demo, this, "foo");
+    }
+
+    unitTest.Demo.prototype = {
+        foo: unitTest_Demo$foo,
+        baseFoo: unitTest_Demo$baseFoo
+    };
+
+    jsoop.registerClass(jsoop.setTypeName(unitTest.Demo, 'unitTest.Demo'), unitTest.DemoBase);
 
 
 licence

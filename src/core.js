@@ -63,6 +63,9 @@ Error.__typeName = 'Error';
 
 ///////////////////////////////////////////////////////////////////////////////
 // jsoop Type System Implementation
+jsoop.__ns_root = {};
+jsoop.__ns_map = {};
+
 jsoop.__class_idtr = 0;
 
 jsoop.__gen_unique_name = function jsoop$gen_class_name(prefix, type) {
@@ -107,6 +110,81 @@ jsoop.getShortTypeName = function jsoop$getShortTypeName(thisType) {
     return fullName;
 };
 
+jsoop.__ns = function jsoop$__ns(name) {
+    this.__typeName = name;
+}
+
+jsoop.__ns.prototype = {
+    __namespace: true,
+    getName: function () {
+        return this.__typeName;
+    }
+}
+
+
+
+//register namespace
+//if check is true, throw jsoop.errorExists when namespace already exists. other, return old namespace
+jsoop.registerNamespace = function jsoop$registerNamespace(name, check) {
+
+    var root = jsoop.__ns_root;
+    var retval = jsoop.__ns_map[name];
+
+    if (retval) {
+        if (!!check) {
+            throw jsoop.errorExists('namespace [' + name + ']');
+        }
+        return retval;
+    }
+
+    var ns_itor = root;
+    var nameParts = name.split('.');
+
+    for (var i = 0; i < nameParts.length; i++) {
+        var part = nameParts[i];
+        var ns_next = ns_itor[part];
+        if (!ns_next) {
+            ns_itor[part] = ns_next = new jsoop.__ns(nameParts.slice(0, i + 1).join('.'));
+        }
+        else {
+            if ((i == (nameParts.length - 1)) && check) {
+                //if all nameParts exists, throw errorExists
+                throw jsoop.errorExists('namespace [' + name + ']');
+            }
+        }
+        ns_itor = ns_next;
+    }
+
+    jsoop.__ns_map[name] = retval = ns_itor;
+    return retval;
+}
+
+//require namespace
+//if check is true, throw jsoop.errorNotExists when namespace not exists. other, return undefined
+jsoop.ns = jsoop.namespace = function jsoop$namespace(name, check) {
+    var root = jsoop.__ns_root;
+    var retval = jsoop.__ns_map[name];
+
+    if (retval) {
+        return retval;
+    }
+
+    var ns_itor = root;
+    var nameParts = name.split('.');
+
+    for (var i = 0; i < nameParts.length; i++) {
+        var part = nameParts[i];
+        var ns_next = ns_itor[part];
+        if (!ns_next && check) {
+            throw jsoop.errorNotExists('namespace [' + name + ']');
+        }
+        ns_itor = ns_next;
+    }
+
+    jsoop.__ns_map[name] = retval = ns_itor;
+
+    return retval;
+}
 
 //register class
 jsoop.registerClass = function jsoop$registerClass(thisType, baseType, interfaceTypes, modules) {
@@ -754,6 +832,21 @@ jsoop.errorParameterCount = function jsoop$errorParameterCount(message) {
     jsoop._popStackFrame(err);
     return err;
 };
+
+jsoop.errorExists = function jsoop$errorExists(message) {
+    var displayMessage = "jsoop.errorExists: " + (message ? message : '');
+    var err = jsoop._errorCreate(displayMessage, { name: 'jsoop.errorExists' });
+    jsoop._popStackFrame(err);
+    return err;
+};
+
+jsoop.errorNotExists = function jsoop$errorNotExists(message) {
+    var displayMessage = "jsoop.errorNotExists: " + (message ? message : '');
+    var err = jsoop._errorCreate(displayMessage, { name: 'jsoop.errorNotExists' });
+    jsoop._popStackFrame(err);
+    return err;
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //createDelegate

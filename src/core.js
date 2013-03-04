@@ -518,7 +518,7 @@ jsoop.arrayRemoveAt = function jsoop$arrayRemoveAt(array, index) {
 jsoop.arrayRemove = function jsoop$arrayRemove(array, item) {
     var index = jsoop.arrayIndexOf(array, item);
     if (index >= 0) {
-        this.splice(index, 1);
+        array.splice(index, 1);
         return true;
     }
     return false;

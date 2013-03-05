@@ -140,6 +140,8 @@ All the RTTI is transparent maintained, so it's load is easy to estimate.
     jsoop.registerClass(jsoop.setTypeName(unitTest.Demo, 'unitTest.Demo'), unitTest.DemoBase);
 
 
+## licence
+
 licence
 =======
 Copyright 2012,  Yin MingJun - email: yinmingjuncn@gmail.com

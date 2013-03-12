@@ -18,6 +18,8 @@ with Script#'s original's javascript runtime lib.
 
 ## Features
 
+  * Support class registration, inheritance, class type query, namespace registration etc.
+  * Support class, enum, interface, module.
   * Supports node.js
   * Supports client side
   * Work together with Script#'s javascript runtime lib
@@ -30,11 +32,27 @@ member into derived class's prototype, and so on.
 
 All the RTTI is transparent maintained, so it's load is easy to estimate.
 
+## Namespace
+
+jsoop provide the way that register namespace into jsoop. All namespace that register into
+jsoop are unique. So, there are a way that access class lib by query namespace from jsoop.
+This feature can provide very complex API to node.js' other module. 
+
+I think that class library that use jsoop just export it's namespace root object as it's 
+export contents. So, those module that depend on this class library can query it's namespace
+after require the class library.
+
+## Client side
+Include 'jsoop.js' into html file, and access it's publish function by global 'jsoop' variable. 
+You can use jsoop access it's function:
+    jsoop.registerClass(...);
+	....
+
+
 ## Samples
 
     //namespace
-
-    var unitTest = {};
+    var unitTest = jsoop.registerNamespace('unitTest');
 
     //////////////////////////////////////////////////////////////////////////////
     //enum unitTest.DemoEnum

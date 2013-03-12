@@ -6,28 +6,25 @@ var packagedesc = { dst: './build/jsoop/package.json',
   '  "version": "%s",\n' +
   '  "author": "Yin Mingjun <yinmingjuncn@gmail.com>",\n' +
   '  "keywords": ["javascript", "OOP", "jsoop"],\n' +
-  '  "main": "./lib/jsoop.js",\n' +
-  '  "repository": "git://github.com/yinmingjun/jsoop.git"\n' +
+  '  "main": "./jsoop.js",\n' +
+  '  "repository":  {"type": "git", "url": "git://github.com/yinmingjun/jsoop.git"}' +
 '}'
 }
 
 var indexdesc = { dst: './build/jsoop/index.js',
-    src: "module.exports = require('./lib/jsoop');" };
+    src: "module.exports = require('./jsoop');" };
 
-var dirs = ['./build', './build/jsoop', './build/jsoop/lib'];
+var dirs = ['./build', './build/jsoop'];
 
 var copyFiles = [{ 
     src: './README.md',
     dst: './build/jsoop/./README.md'
 }, {
     src: './prebuild/node/jsoop.js',
-    dst: './build/jsoop/lib/jsoop.js'
+    dst: './build/jsoop/jsoop.js'
 }, {
     src: './prebuild/node/jsoop-debug.js',
-    dst: './build/jsoop/lib/jsoop-debug.js'
-}, {
-    src: './prebuild/browser/jsoop_browser.js',
-    dst: './build/jsoop/jsoop_browser.js'
+    dst: './build/jsoop/jsoop-debug.js'
 }];
 
 var versionFile = './version.txt';

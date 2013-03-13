@@ -69,11 +69,12 @@ The property of class shoud add "get_" "set_" before the property name. For exam
 
 #### Class Type Define
 The class type's constructor should be add to namespace of class. For example:
-var DemoNamespace = jsoop.registerNamespace('DemoNamespace');
 
-DemoNamespace.DemoClass = function DemoNamespace_DemoClass() {
-	...
-};
+	var DemoNamespace = jsoop.registerNamespace('DemoNamespace');
+
+	DemoNamespace.DemoClass = function DemoNamespace_DemoClass() {
+		jsoop.initializeBase(DemoNamespace.DemoClass, this);
+	};
 
 The function name of class constructor should be full name of class, and replace the "." to "_". For
 example, " function Namespace1_ClassA( ... ) ...".
@@ -81,27 +82,31 @@ example, " function Namespace1_ClassA( ... ) ...".
 #### Implementation of Class Member
 The implementation of class member should combine the class constructor name and the class member name 
 with "$". For example:
+
 function DemoNamespace_DemoClass$demoMethod() {
-	...
+	return 'is DemoClass.demoMethod';
 }
 
 #### Filling Prototype
 The filling of prototype should like the following style:
+
     DemoNamespace.DemoClass.prototype = {
-		...
-        modFoo: DemoNamespace.DemoClass$demoMethod,
-		...
+        demoMethod: DemoNamespace.DemoClass$demoMethod
     };
+
 So we can view all the member of a class.
 
 #### Register Type
 The Type registrateration should like this:
+
     jsoop.registerClass(jsoop.setTypeName(DemoNamespace.DemoClass, 'DemoNamespace.DemoClass'), DemoNamespace.DemoClassBase);
+
 If don't register the full name of type, we can't retrive this type by jsoop.getType(fullTypeName). 
 
 ## Use Jsoop in Client Side
 Include 'jsoop.js' into html file, and access it's publish function by global 'jsoop' variable. 
 You can use jsoop access it's function:
+
     jsoop.registerClass(...);
 	....
 

@@ -83,9 +83,9 @@ For example, " function Namespace1_ClassA( ... ) ...".
 The implementation of class member should combine the class constructor name and the class member name 
 with "$". For example:
 
-function DemoNamespace_DemoClass$demoMethod() {
-	return 'DemoClass.demoMethod';
-}
+	function DemoNamespace_DemoClass$demoMethod() {
+		return 'DemoClass.demoMethod';
+	}
 
 
 #### Filling Prototype

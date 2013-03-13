@@ -76,16 +76,17 @@ The class type's constructor should be add to namespace of class. For example:
 		jsoop.initializeBase(DemoNamespace.DemoClass, this);
 	};
 
-The function name of class constructor should be full name of class, and replace the "." to "_". For
-example, " function Namespace1_ClassA( ... ) ...".
+The function name of class constructor should be full name of class, and replace the "." to "_". 
+For example, " function Namespace1_ClassA( ... ) ...".
 
 #### Implementation of Class Member
 The implementation of class member should combine the class constructor name and the class member name 
 with "$". For example:
 
 function DemoNamespace_DemoClass$demoMethod() {
-	return 'is DemoClass.demoMethod';
+	return 'DemoClass.demoMethod';
 }
+
 
 #### Filling Prototype
 The filling of prototype should like the following style:

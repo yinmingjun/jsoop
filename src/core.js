@@ -1165,6 +1165,9 @@
     jsoop.registerClass(jsoop.setTypeName(jsoop.EventHandlerList, 'jsoop.EventHandlerList'));
 
     ///////////////////////////////////////////////////////////////////////////////
+    //Syntactic sugar
+
+    ///////////////////////////////////////////////////////////////////////////////
     //exports function
     //ignore all member start with "_"
     jsoop.Exports = function jsoop$Exports(dict, exports) {

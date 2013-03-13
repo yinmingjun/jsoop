@@ -32,17 +32,78 @@ member into derived class's prototype, and so on.
 
 All the RTTI is transparent maintained, so it's load is easy to estimate.
 
-## Namespace
+## Why is Namespace
 
 jsoop provide the way that register namespace into jsoop. All namespace that register into
-jsoop are unique. So, there are a way that access class lib by query namespace from jsoop.
-This feature can provide very complex API to node.js' other module. 
+jsoop are unique. And registered namespace of one module can be load by other module. All
+namespaces that registered into jsoop is transparent to all other modules. So, there are a 
+way that access class lib by query namespace from jsoop.
+
+This feature support provide very complex API for node.js', also support the extention of
+class lib in an OOP way. Those module that just require the depend on class library, then
+query it's namespace, and access the class library throw it's namespace.
 
 I think that class library that use jsoop just export it's namespace root object as it's 
-export contents. So, those module that depend on this class library can query it's namespace
-after require the class library.
+export contents, and use the export name 'rootns'. 
 
-## Client side
+
+## Suggest Coding Standard
+
+The programmer of jsoop has the freedom to name the class and it's member. I just give the suggestions
+about it.
+
+### The names of class, interface module and enum
+I suggest use Camel Case style. Like "DomParser", "HttpContext".
+The interface shoud add "I" before the name of interface. Like "IBrowser", "IContainer".
+
+### The names of members
+I suggest the names of member use Little Camel Case style.
+
+#### Private Member
+Private member (data fiels, methods, properties, etc.) should add "_" before the name of it. 
+Like "_state", "_accessTime". 
+
+#### Property
+The property of class shoud add "get_" "set_" before the property name. For example, 
+"get_accessTime", "set_accessTime".
+
+#### Class Type Define
+The class type's constructor should be add to namespace of class. For example:
+var DemoNamespace = jsoop.registerNamespace('DemoNamespace');
+
+DemoNamespace.DemoClass = function DemoNamespace_DemoClass() {
+^^^^^^^^^^^^^^^^^^^^^^^            ^^^^^^^^^^^^^^^^^^^^^^^
+	...
+};
+
+The function name of class constructor should be full name of class, and replace the "." to "_". For
+example, " function Namespace1_ClassA( ... ) ...".
+
+#### Implementation of Class Member
+The implementation of class member should combine the class constructor name and the class member name 
+with "$". For example:
+function DemoNamespace_DemoClass$demoMethod() {
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	...
+}
+
+#### Filling Prototype
+The filling of prototype should like the following style:
+    DemoNamespace.DemoClass.prototype = {
+		...
+        modFoo: DemoNamespace.DemoClass$demoMethod,
+		^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		...
+    };
+So we can view all the member of a class.
+
+#### Register Type
+The Type registrateration should like this:
+    jsoop.registerClass(jsoop.setTypeName(DemoNamespace.DemoClass, 'DemoNamespace.DemoClass'), DemoNamespace.DemoClassBase);
+	                          ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^
+If don't register the full name of type, we can't retrive this type by jsoop.getType(fullTypeName). 
+
+## Use Jsoop in Client Side
 Include 'jsoop.js' into html file, and access it's publish function by global 'jsoop' variable. 
 You can use jsoop access it's function:
     jsoop.registerClass(...);

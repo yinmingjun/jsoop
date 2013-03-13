@@ -110,7 +110,7 @@ You can use jsoop access it's function:
 	....
 
 
-## Samples
+## Using Samples
 
     //namespace
     var unitTest = jsoop.registerNamespace('unitTest');
@@ -219,9 +219,9 @@ You can use jsoop access it's function:
     jsoop.registerClass(jsoop.setTypeName(unitTest.Demo, 'unitTest.Demo'), unitTest.DemoBase);
 
 
-## licence
+## About Licence
 
-licence
+Licence
 =======
 Copyright 2012,  Yin MingJun - email: yinmingjuncn@gmail.com
 Dual licensed under the MIT or GPL Version 2 licenses.

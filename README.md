@@ -72,7 +72,6 @@ The class type's constructor should be add to namespace of class. For example:
 var DemoNamespace = jsoop.registerNamespace('DemoNamespace');
 
 DemoNamespace.DemoClass = function DemoNamespace_DemoClass() {
-^^^^^^^^^^^^^^^^^^^^^^^            ^^^^^^^^^^^^^^^^^^^^^^^
 	...
 };
 
@@ -83,7 +82,6 @@ example, " function Namespace1_ClassA( ... ) ...".
 The implementation of class member should combine the class constructor name and the class member name 
 with "$". For example:
 function DemoNamespace_DemoClass$demoMethod() {
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	...
 }
 
@@ -92,7 +90,6 @@ The filling of prototype should like the following style:
     DemoNamespace.DemoClass.prototype = {
 		...
         modFoo: DemoNamespace.DemoClass$demoMethod,
-		^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		...
     };
 So we can view all the member of a class.
@@ -100,7 +97,6 @@ So we can view all the member of a class.
 #### Register Type
 The Type registrateration should like this:
     jsoop.registerClass(jsoop.setTypeName(DemoNamespace.DemoClass, 'DemoNamespace.DemoClass'), DemoNamespace.DemoClassBase);
-	                          ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^
 If don't register the full name of type, we can't retrive this type by jsoop.getType(fullTypeName). 
 
 ## Use Jsoop in Client Side

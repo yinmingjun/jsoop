@@ -55,11 +55,6 @@ var testCore = (function () {
         unitTestFW.test("testCore-isNullOrUndefined-null", function () { unitTestFW.ok(jsoop.isNullOrUndefined(null), "Passed!"); });
         unitTestFW.test("testCore-isNullOrUndefined-''", function () { unitTestFW.ok(!jsoop.isNullOrUndefined(''), "Passed!"); });
         unitTestFW.test("testCore-isNullOrUndefined-1", function () { unitTestFW.ok(!jsoop.isNullOrUndefined(1), "Passed!"); });
-        //jsoop.isValue
-        unitTestFW.test("testCore-isValue-undefined", function () { unitTestFW.ok(!jsoop.isValue(undefined), "Passed!"); });
-        unitTestFW.test("testCore-isValue-null", function () { unitTestFW.ok(!jsoop.isValue(null), "Passed!"); });
-        unitTestFW.test("testCore-isValue-''", function () { unitTestFW.ok(jsoop.isValue(''), "Passed!"); });
-        unitTestFW.test("testCore-isValue-1", function () { unitTestFW.ok(jsoop.isValue(1), "Passed!"); });
 
         //base type name
         unitTestFW.test("testCore-baseType-Object", function () { unitTestFW.ok(jsoop.getTypeName(Object) === 'Object', "Passed!"); });

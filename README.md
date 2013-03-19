@@ -1,20 +1,18 @@
 # jsoop
 
-It's designed to provide Object-oriented programming (OOP) support for javascript. 
-
+jsoop js a pure and simple javascript OOP library, provide a way to write javascript 
+class library. 
 
 ## Introduction
 
 There are many kinds of Object-oriented programming (OOP) libs for javascript, and 
-I never think I would write one. When I try to migrate my javascript project into 
-Node.JS, and try to hide the difference between client and server, to make it work 
-on both client and Node.js. I found there no OOP javascript libs is design for this 
-goal.
+I never think I would write one. When I try to migrate my jsworkflow project to 
+nodejs, try to export API by class lib's interface, and make it work on both client 
+and nodejs. I found there no OOP javascript libs is designed for this target.
 
-I like Script#'s OOP programming style, and Script# is now under Microsoft Permissive 
-License (Ms-PL). So this is posible to migrate it. I make some change to make it work
-on node.js, and keep the feature that run on client side. also I want make it can co-work
-with Script#'s original's javascript runtime lib.
+I had read script# version 0.7's javascript runtime, and like script#'s generated javascript
+codes' coding standards. It's clear and tidy. So I rewrite it and make it work on node.js, 
+and keep the feature that it can also work on client side. 
 
 ## Features
 
@@ -22,32 +20,36 @@ with Script#'s original's javascript runtime lib.
   * Support class, enum, interface, module.
   * Supports node.js
   * Supports client side
-  * Work together with Script#'s javascript runtime lib
 
 ## How it work
 
 jsoop is a node.js javascript module, and it puts __typeName, __baseType, __interfaces,
-__modules RTTI into class type(function), so when new a class intance, it bind all base
-member into derived class's prototype, and so on.
+__modules RTTI informatin into class(function) type. when new a class intance, it combine all 
+base class or module's member into current class's prototype, and so on.
 
-All the RTTI is transparent maintained, so it's load is easy to estimate.
+All the type information is maintained transparently, and it's load is easy to estimate.
 
-## Why is Namespace
+## Why use Namespace
 
 jsoop provide the way that register namespace into jsoop. All namespace that register into
-jsoop are unique. And registered namespace of one module can be load by other module. All
-namespaces that registered into jsoop is transparent to all other modules. So, there are a 
-way that access class lib by query namespace from jsoop.
+jsoop are maintained by jsoop. These registered namespaces can be load later by current or 
+other modules. 
 
-This feature support provide very complex API for node.js', also support the extention of
-class lib in an OOP way. Those module that just require the depend on class library, then
-query it's namespace, and access the class library throw it's namespace.
+This feature support to export complex API to nodejs. The user of jsoop can access the class
+lib by query namespace and index the target class by namespace's hierachy. 
 
-I think that class library that use jsoop just export it's namespace root object as it's 
+I suggest that class libraries that use jsoop can just export it's root namespace as it's 
 export contents, and use the export name 'rootns'. 
 
+## Use jsoop in Multiple Module
 
-## Suggest Coding Standard
+jsoop regard itself as an global module. The first require jsoop module regard as finally 
+require jsoop module. The first loaded jsoop module publish jsoop global name, and other 
+jsoop module just use it. If you want to control load which jsoop module, you can load jsoop 
+before load other module at the main module. 
+
+
+## About Coding Standard
 
 The programmer of jsoop has the freedom to name the class and it's member. I just give the suggestions
 about it.
@@ -228,4 +230,12 @@ Licence
 Copyright 2012,  Yin MingJun - email: yinmingjuncn@gmail.com
 Dual licensed under the MIT or GPL Version 2 licenses.
 http://jquery.org/license
+
+## About Script#
+Script# is a development tool that generates JavaScript by compiling C# source code. 
+Script# also support nodejs since version 0.8 release. It's a useful tool that combine
+strong type language's type-safety and dynamic language's flexibility.
+
+Script#'s githut is: 
+https://github.com/nikhilk/scriptsharp
 

@@ -6,9 +6,6 @@
 * Dual licensed under the MIT or GPL Version 2 licenses.
 * http://jquery.org/license
 *
-* Project is migrated from Script# Core Runtime
-* More information at http://projects.nikhilk.net/ScriptSharp
-*
 */
 
 /*
@@ -22,35 +19,83 @@
 *     __baseType: base class type
 *     __interfaces: array of support interfaces
 *     __modules: array of include modules
-*     __class, __interface, __module, __enum, __flags, __prototypePending: some flags of class type.
+*     __class, __namespace, __interface, __module, __enum, __mergePrototype: some flags of class type.
 *    
 */
 
 (function (globalContext) {
     ///////////////////////////////////////////////////////////////////////////////
     // boot code
+    var jsoop = {};
 
-    var jsoop = {
+    ///////////////////////////////////////////////////////////////////////////////
+    //is running in client side
+    jsoop.isClientSide = function jsoop$isClientSide() {
+        var retval = !!(
+            (typeof (window) !== "undefined") &&
+            (typeof (navigator) !== "undefined") &&
+            (typeof (document) !== "undefined"));
 
-        isUndefined: function (o) {
-            return (o === undefined);
-        },
+        return retval;
+    };
 
-        isNull: function (o) {
-            return (o === null);
-        },
+    ///////////////////////////////////////////////////////////////////////////////
+    //null and undefined detect
+    jsoop.isUndefined = function jsoop$isUndefined(value) {
+        return (value === undefined);
+    };
 
-        isNullOrUndefined: function (o) {
-            return (o === null) || (o === undefined);
-        },
+    jsoop.isNull = function jsoop$isNull(value) {
+        return (value === null);
+    };
 
-        isValue: function (o) {
-            return (o !== null) && (o !== undefined);
+    jsoop.isNullOrUndefined = function jsoop$isNullOrUndefined(value) {
+        return (value === null) || (value === undefined);
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //exports function
+    //ignore all member start with "_"
+    jsoop.Exports = function jsoop$Exports(dict, exports) {
+        for (var key in dict) {
+            if (!dict.hasOwnProperty(key)) {
+                continue;
+            }
+
+            if (jsoop.stringStartsWith(key, "_")) {
+                continue;
+            }
+
+            exports[key] = dict[key];
         }
 
     };
 
+    ///////////////////////////////////////////////////////////////////////////////
+    //first install module as finally module
+    if (!jsoop.isClientSide()) {
+        
+        //not in browser
+        //is node, change globalContext to global
+        globalContext = global;
+    }
 
+    //check jsoop is already exists
+    if (globalContext.jsoop && (globalContext.jsoop.__typeName === 'jsoop')) {
+        //first required jsoop module as finally module
+        if (typeof exports !== 'undefined') {
+            //node
+            if (typeof module !== 'undefined' && module.exports) {
+                exports = module.exports;
+            }
+
+            //just publis globalContext.jsoop as exports contents
+            jsoop.Exports(globalContext.jsoop, exports);
+        }
+
+        //skip later process
+        return;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////
     // setup root RTTI information for exists types
@@ -71,7 +116,6 @@
     jsoop.__ns_root = {};
     jsoop.__ns_map = {};
     jsoop.__type_map = {};
-
     jsoop.__class_idtr = 0;
 
     jsoop.__gen_unique_name = function jsoop$gen_class_name(prefix, type) {
@@ -99,11 +143,14 @@
     //设置TypeName，返回thisType
     jsoop.setTypeName = function jsoop$setTypeName(thisType, name) {
         thisType.__typeName = name;
+
+        //put type into type jsoop registry
         jsoop.__type_map[name] = thisType;
         return thisType;
     };
 
     jsoop.getType = function jsoop$getType(fullTypeName) {
+        //get type from jsoop type registry
         var type = jsoop.__type_map[fullTypeName];
 
         return type;
@@ -113,6 +160,7 @@
         return thisType.__typeName;
     };
 
+    //use when display message
     jsoop.getTypeShortName = function jsoop$getTypeShortName(thisType) {
         var fullName = thisType.__typeName;
         var nsIndex = fullName.lastIndexOf('.');
@@ -152,8 +200,10 @@
         var nameParts = name.split('.');
 
         for (var i = 0; i < nameParts.length; i++) {
+            //get next part from parent namespace
             var part = nameParts[i];
             var ns_next = ns_itor[part];
+
             if (!ns_next) {
                 //create one if namespace don't exists.
                 ns_itor[part] = ns_next = new jsoop.__ns(nameParts.slice(0, i + 1).join('.'));
@@ -165,6 +215,8 @@
                     throw jsoop.errorExists('namespace [' + name + ']');
                 }
             }
+
+            //navigate to next namespace level
             ns_itor = ns_next;
         }
 
@@ -187,8 +239,10 @@
         var nameParts = name.split('.');
 
         for (var i = 0; i < nameParts.length; i++) {
+            //get next part from parent namespace
             var part = nameParts[i];
             var ns_next = ns_itor[part];
+
             if (!ns_next && check) {
                 throw jsoop.errorNotExists('namespace [' + name + ']');
             }
@@ -210,8 +264,12 @@
             thisType.__typeName = jsoop.__gen_class_name(thisType);
         }
 
+        //need rebuild prototype?
         if (baseType || modules) {
-            thisType.__prototypePending = true;
+            thisType.__mergePrototype = true;
+        }
+        else {
+            thisType.__mergePrototype = false;
         }
 
         if (interfaceTypes) {
@@ -250,7 +308,7 @@
 
     };
 
-    jsoop.registerEnum = function jsoop$registerEnum(enumType, flags) {
+    jsoop.registerEnum = function jsoop$registerEnum(enumType) {
 
         if (jsoop.isNullOrUndefined(enumType.__typeName)) {
             enumType.__typeName = jsoop.__gen_enum_name(enumType);
@@ -261,53 +319,70 @@
         }
 
         enumType.__enum = true;
-        if (flags) {
-            enumType.__flags = true;
-        }
     };
 
-    jsoop.setupBase = function jsoop$setupBase(thisType) {
-        if (thisType.__prototypePending) {
-            var baseType = thisType.__baseType;
-            if (baseType) {
-                if (baseType.__prototypePending) {
-                    jsoop.setupBase(baseType);
-                }
+    jsoop._mergePrototype = function jsoop$_mergePrototype(thisType) {
 
-                for (var memberName in baseType.prototype) {
-                    var memberValue = baseType.prototype[memberName];
+        //need build prototype?
+        if (!thisType.__mergePrototype) {
+            return;
+        }
+
+        //get base type
+        var baseType = thisType.__baseType;
+
+        //process basetype
+        if (baseType) {
+
+            //build basetype's prototype first.
+            jsoop._mergePrototype(baseType);
+
+            //add all basetype's member into thisType
+            for (var memberName in baseType.prototype) {
+                var memberValue = baseType.prototype[memberName];
+
+                //base can't override the same member of derived class
+                if (!thisType.prototype[memberName]) {
+                    thisType.prototype[memberName] = memberValue;
+                }
+            }
+
+            //for all memer defined in interface, just act as a symble, we don't merge
+            //any member into prototype
+            if (thisType.__interfaces) {
+                //do nothing
+            }
+        }
+
+        //process modules
+        if (thisType.__modules) {
+
+            //get modules
+            var modules = thisType.__modules;
+
+            //put all member of module into class
+            for (var i = 0; i < modules.length; i++) {
+                var module = modules[i];
+
+                //copy method from module
+                for (var memberName in module.prototype) {
+                    var memberValue = module.prototype[memberName];
+
+                    //module member can't override the sameMember of current type.
                     if (!thisType.prototype[memberName]) {
                         thisType.prototype[memberName] = memberValue;
                     }
                 }
-
-                if (thisType.__interfaces) {
-                    //do nothing
-                }
             }
-
-            if (thisType.__modules) {
-                var modules = thisType.__modules;
-                for (var i = 0; i < modules.length; i++) {
-                    var module = modules[i];
-
-                    //copy method from module
-                    for (var memberName in module.prototype) {
-                        var memberValue = module.prototype[memberName];
-                        if (!thisType.prototype[memberName]) {
-                            thisType.prototype[memberName] = memberValue;
-                        }
-                    }
-                }
-            }
-
-            delete thisType.__prototypePending;
         }
+
+        //set process end flags.
+        thisType.__mergePrototype = false;
     };
 
     jsoop.initializeBase = function jsoop$initializeBase(thisType, instance, args) {
-        if (thisType.__prototypePending) {
-            jsoop.setupBase(thisType);
+        if (thisType.__mergePrototype) {
+            jsoop._mergePrototype(thisType);
         }
 
         if (!args) {
@@ -320,6 +395,7 @@
 
     jsoop.callBaseMethod = function jsoop$callBaseMethod(thisType, instance, name, args) {
         var baseMethod = thisType.__baseType.prototype[name];
+
         if (!args) {
             return baseMethod.apply(instance);
         }
@@ -341,22 +417,33 @@
     };
 
     jsoop.isInstanceOfType = function jsoop$isInstanceOfType(instance, type) {
+
+        //all type can be assigned by null or undefined. but undefined and null dosn't have a type.
         if (jsoop.isNullOrUndefined(instance)) {
             return false;
         }
+
+        //object is any type's parent
         if ((type == Object) || (instance instanceof type)) {
             return true;
         }
 
         var fromType = jsoop.getInstanceType(instance);
-        return jsoop.isAssignableFrom(type, fromType);
+        return jsoop.isAssignableFrom(fromType, type);
     };
 
-    jsoop.isAssignableFrom = function jsoop$isAssignableFrom(toType, fromType) {
-        if ((fromType == Object) || (toType == fromType)) {
+    //check type converting of fromType and toType
+    //class FromType fromType;
+    //class ToType toType;
+    //toType = fromType?
+    jsoop.isAssignableFrom = function jsoop$isAssignableFrom(fromType, toType) {
+
+        //object can accept all other instance.
+        if ((toType == Object) || (toType == fromType)) {
             return true;
         }
-        if (toType.__class) {
+
+        if (jsoop.typeIsClass(toType)) {
             var baseType = fromType.__baseType;
             while (baseType) {
                 if (toType == baseType) {
@@ -365,7 +452,7 @@
                 baseType = baseType.__baseType;
             }
         }
-        else if (toType.__interface) {
+        else if (jsoop.typeIsInterface(toType)) {
             var interfaces = fromType.__interfaces;
             if (interfaces && jsoop.arrayContains(interfaces, toType)) {
                 return true;
@@ -383,11 +470,9 @@
         return false;
     };
 
-
     jsoop._createInstance = function jsoop$_createInstance(type, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9) {
         return new type(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9);
     };
-
 
     jsoop.createInstance = function jsoop$createInstance(fullTypeName, args) {
         var type = jsoop.getType(fullTypeName);
@@ -412,30 +497,30 @@
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Type System Implementation Query
-
-    jsoop.isClass = function jsoop$isClass(type) {
+    // RTTI type category Query
+    jsoop.typeIsClass = function jsoop$typeIsClass(type) {
         return (type.__class == true);
     };
 
-    jsoop.isEnum = function jsoop$isEnum(type) {
+    jsoop.typeIsEnum = function jsoop$typeIsEnum(type) {
         return (type.__enum == true);
     };
 
-    jsoop.isFlags = function jsoop$isFlags(type) {
-        return ((type.__enum == true) && (type.__flags == true));
-    };
-
-    jsoop.isInterface = function jsoop$isInterface(type) {
+    jsoop.typeIsInterface = function jsoop$typeIsInterface(type) {
         return (type.__interface == true);
     };
 
-    jsoop.isModule = function jsoop$isModule(type) {
+    jsoop.typeIsModule = function jsoop$typeIsModule(type) {
         return (type.__module == true);
     };
 
     jsoop.getInstanceType = function jsoop$getInstanceType(instance) {
         var ctor = null;
+
+        //null or undefined has no constructor
+        if (jsoop.isNullOrUndefined(instance)) {
+            return ctor;
+        }
 
         // NOTE: We have to catch exceptions because the constructor
         //       cannot be looked up on native COM objects
@@ -444,6 +529,9 @@
         }
         catch (ex) {
         }
+
+        //all type shuold has a __typeName. 
+        //if one type has no __typeName, regard as Object's instance
         if (!ctor || !ctor.__typeName) {
             ctor = Object;
         }
@@ -451,89 +539,45 @@
     };
 
     ///////////////////////////////////////////////////////////////////////////////
-    //common utils
-    jsoop.isBrowser = function jsoop$isBrowser() {
-        var retval = !!(
-            (typeof (window) !== "undefined") &&
-            (typeof (navigator) !== "undefined") &&
-            (typeof (document) !== "undefined"));
+    //primary type detect
 
-        return retval;
-    };
+    //is pure object
+    jsoop.isPureObject = function jsoop$isPureObject(obj) {
+        var type = jsoop.getInstanceType(obj);
 
-    jsoop._objectTypeIs = function jsoop$_objectTypeIs(obj, typeName) {
-        var t = jsoop.getInstanceType(obj);
-        return jsoop.getTypeName(t) === typeName;
-    };
-
-    jsoop.isObject = function jsoop$isArray(obj) {
-        return jsoop._objectTypeIs(obj, "Object");
+        return (type === Object);
     };
 
     jsoop.isBoolean = function jsoop$isBoolean(obj) {
-        return jsoop._objectTypeIs(obj, "Boolean");
+        return jsoop.isInstanceOfType(obj, Boolean);
     };
 
     jsoop.isNumber = function jsoop$isNumber(obj) {
-        return jsoop._objectTypeIs(obj, "Number");
+        return jsoop.isInstanceOfType(obj, Number);
     };
 
     jsoop.isRegExp = function jsoop$isRegExp(obj) {
-        return jsoop._objectTypeIs(obj, "RegExp");
+        return jsoop.isInstanceOfType(obj, RegExp);
     };
 
     jsoop.isDate = function jsoop$isDate(obj) {
-        return jsoop._objectTypeIs(obj, "Date");
+        return jsoop.isInstanceOfType(obj, Date);
     };
 
     jsoop.isError = function jsoop$isError(obj) {
-        return jsoop._objectTypeIs(obj, "Error");
+        return jsoop.isInstanceOfType(obj, Error);
     };
 
     jsoop.isFunction = function jsoop$isFunction(obj) {
-        return jsoop._objectTypeIs(obj, "Function");
+        return jsoop.isInstanceOfType(obj, Function);
     };
 
     jsoop.isString = function jsoop$isString(obj) {
-        return jsoop._objectTypeIs(obj, "String");
+        return jsoop.isInstanceOfType(obj, String);
     };
 
     jsoop.isArray = function jsoop$isArray(obj) {
-        return jsoop._objectTypeIs(obj, "Array");
-    };
-
-    //copy from jquery
-    jsoop.isPlainObject = function jsoop$isPlainObject(obj) {
-        ///	<summary>
-        ///		Check to see if an object is a plain object (created using "{}" or "new Object").
-        ///	</summary>
-        ///	<param name="obj" type="Object">
-        ///		The object that will be checked to see if it's a plain object.
-        ///	</param>
-        ///	<returns type="Boolean" />
-
-        // Must be an Object.
-        // Because of IE, we also have to check the presence of the constructor property.
-        // Make sure that DOM nodes and window objects don't pass through, as well
-        //if (!obj || !jsoop.isObject(obj) || obj.nodeType || obj.setInterval) {
-        if (!obj || !jsoop.isObject(obj)) {
-            return false;
-        }
-
-        // Not own constructor property must be Object
-        if (obj.constructor
-			&& !obj.hasOwnProperty("constructor")
-			&& !obj.constructor.prototype.hasOwnProperty("isPrototypeOf")) {
-            return false;
-        }
-
-        // Own properties are enumerated firstly, so to speed up,
-        // if last one is own, then all properties are own.
-
-        var key;
-        for (key in obj) { }
-
-        return key === undefined || obj.hasOwnProperty(key);
+        return jsoop.isInstanceOfType(obj, Array);
     };
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -567,24 +611,11 @@
 
 
     //copy from jquery
+    //jsoop.objectExtend([deep, ] target, src1[ , ...srcn);
+    //examples:
+    //    jsoop.objectExtend(settings, options);
+    //    jsoop.objectExtend({}, defaults, options);
     jsoop.objectExtend = function jsoop$objectExtend() {
-        ///	<summary>
-        ///		Extend one object with one or more others, returning the original,
-        ///		modified, object. This is a great utility for simple inheritance.
-        ///		jQuery.extend(settings, options);
-        ///		var settings = jQuery.extend({}, defaults, options);
-        ///		Part of JavaScript
-        ///	</summary>
-        ///	<param name="target" type="Object">
-        ///		 The object to extend
-        ///	</param>
-        ///	<param name="prop1" type="Object">
-        ///		 The object that will be merged into the first.
-        ///	</param>
-        ///	<param name="propN" type="Object" optional="true" parameterArray="true">
-        ///		 (optional) More objects to merge into the first
-        ///	</param>
-        ///	<returns type="Object" />
 
         // copy reference to target object
         var target = arguments[0] || {}, i = 1, length = arguments.length, deep = false, options, name, src, copy;
@@ -600,15 +631,10 @@
 
         // Handle case when target is a string or something (possible in deep copy)
         //if (typeof target !== "object" && !jQuery.isFunction(target)) {
-        if (!jsoop.isObject(target) && !jsoop.isFunction(target)) {
+        if (!jsoop.isPureObject(target) && !jsoop.isFunction(target)) {
             target = {};
         }
 
-        //    // extend jQuery itself if only one argument is passed
-        //    if (length === i) {
-        //        target = this;
-        //        --i;
-        //    }
 
         for (; i < length; i++) {
             // Only deal with non-null/undefined values
@@ -625,10 +651,10 @@
 
                     // Recurse if we're merging object literal values or arrays
                     //if (deep && copy && (jQuery.isPlainObject(copy) || jQuery.isArray(copy))) {
-                    if (deep && copy && (jsoop.isPlainObject(copy) || jsoop.isArray(copy))) {
+                    if (deep && copy && (jsoop.isPureObject(copy) || jsoop.isArray(copy))) {
                         //var clone = src && (jQuery.isPlainObject(src) || jQuery.isArray(src)) ? src
                         //	: jQuery.isArray(copy) ? [] : {};
-                        var clone = src && (jsoop.isPlainObject(src) || jsoop.isArray(src)) ? src
+                        var clone = src && (jsoop.isPureObject(src) || jsoop.isArray(src)) ? src
                     	: jsoop.isArray(copy) ? [] : {};
 
                         // Never move original objects, clone them
@@ -762,8 +788,8 @@
     ///////////////////////////////////////////////////////////////////////////////
     //string extention
 
-    jsoop.stringIsNullOrEmpty = function jsoop$stringIsNullOrEmpty(s) {
-        return !s || !s.length;
+    jsoop.stringIsNullOrEmpty = function jsoop$stringIsNullOrEmpty(str) {
+        return !str || !str.length;
     };
 
     jsoop.stringCompare = function jsoop$stringCompare(s1, s2, ignoreCase) {
@@ -793,16 +819,26 @@
         if (arguments.length === 2) {
             return arguments[0] + arguments[1];
         }
-        return Array.prototype.join.call(arguments, '');
+
+        if (arguments.length === 0) {
+            return '';
+        }
+
+        var retval = arguments.join('');
+
+        return retval;
     };
 
     jsoop.stringInsert = function jsoop$stringInsert(str, index, value) {
         if (!value) {
             return str;
         }
+
+        //index is 0
         if (!index) {
             return value + str;
         }
+
         var s1 = str.substr(0, index);
         var s2 = str.substr(index);
         return s1 + value + s2;
@@ -874,6 +910,16 @@
         return s;
     };
 
+    jsoop.stringIndexOf = function jsoop$stringIndexOf(str, subStr, startIndex) {
+        str = str || '';
+        return str.indexOf(subStr, startIndex);
+    };
+
+    jsoop.stringLastIndexOf = function jsoop$stringLastIndexOf(str, subStr, startIndex) {
+        str = str || '';
+        return str.lastIndexOf(subStr, startIndex);
+    };
+
     jsoop.stringIndexOfAny = function jsoop$stringIndexOfAny(str, chars, startIndex, count) {
         str = str || '';
         var length = str.length;
@@ -936,9 +982,11 @@
     };
 
     jsoop._popStackFrame = function jsoop$_popStackFrame(err) {
+        //TODO:
+        //need rewrite in node.js
         if (jsoop.isNullOrUndefined(err.stack) ||
-        jsoop.isNullOrUndefined(err.fileName) ||
-        jsoop.isNullOrUndefined(err.lineNumber)) {
+            jsoop.isNullOrUndefined(err.fileName) ||
+            jsoop.isNullOrUndefined(err.lineNumber)) {
             return;
         }
 
@@ -972,6 +1020,7 @@
         if (paramName) {
             displayMessage += "\nparamName:" + paramName;
         }
+
         var err = jsoop._errorCreate(displayMessage, { name: "jsoop.errorArgument", paramName: paramName });
         jsoop._popStackFrame(err);
         return err;
@@ -983,7 +1032,9 @@
         if (paramName) {
             displayMessage += "\nparamName:" + paramName;
         }
+
         var err = jsoop._errorCreate(displayMessage, { name: "jsoop.errorArgumentNull", paramName: paramName });
+
         jsoop._popStackFrame(err);
         return err;
     };
@@ -1164,49 +1215,20 @@
 
     jsoop.registerClass(jsoop.setTypeName(jsoop.EventHandlerList, 'jsoop.EventHandlerList'));
 
-    ///////////////////////////////////////////////////////////////////////////////
-    //Syntactic sugar
-
-    ///////////////////////////////////////////////////////////////////////////////
-    //exports function
-    //ignore all member start with "_"
-    jsoop.Exports = function jsoop$Exports(dict, exports) {
-        for (var key in dict) {
-            if (!dict.hasOwnProperty(key)) {
-                continue;
-            }
-
-            if (jsoop.stringStartsWith(key, "_")) {
-                continue;
-            }
-
-            exports[key] = dict[key];
-        }
-
-    };
-
     //register jsoop namespace, and publish all API into it.
     var jsoopNS = jsoop.registerNamespace('jsoop');
     jsoop.Exports(jsoop, jsoopNS);
 
-    //exports module symbols
-    if (!jsoop.isBrowser()) {
+    //exports module symbols to exports
+    if (!jsoop.isClientSide()) {
         if (typeof exports !== 'undefined') {
             //node
-            if (typeof module !== 'undefined' && module.exports) {
-                exports = module.exports;
-            }
             jsoop.Exports(jsoop, exports);
-
-            //to node, change globalContext to global
-            globalContext = global;
         }
-
     }
 
     //publish jsoop to global context
     globalContext.jsoop = jsoopNS;
-
 
 })(this);
 

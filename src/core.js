@@ -72,30 +72,52 @@
     };
 
     ///////////////////////////////////////////////////////////////////////////////
-    //first install module as finally module
+    //first install module hold jsoop's namespace root
     if (!jsoop.isClientSide()) {
-        
+
         //not in browser
         //is node, change globalContext to global
         globalContext = global;
     }
 
-    //check jsoop is already exists
-    if (globalContext.jsoop && (globalContext.jsoop.__typeName === 'jsoop')) {
-        //first required jsoop module as finally module
-        if (typeof exports !== 'undefined') {
-            //node
-            if (typeof module !== 'undefined' && module.exports) {
-                exports = module.exports;
-            }
+    ///////////////////////////////////////////////////////////////////////////////
+    //build ns_rtti for jsoop
+    jsoop.__ns_rtti = {
+        __typeName: 'jsoop$ns_rtti',
+        ns_root: {},
+        ns_map: {},
+        type_map: {},
+        class_idtr: 0
+    };
 
-            //just publis globalContext.jsoop as exports contents
-            jsoop.Exports(globalContext.jsoop, exports);
-        }
 
-        //skip later process
-        return;
+    //check jsoop's ns_rtti is already exists
+    if (globalContext.jsoop$ns_rtti && (globalContext.jsoop$ns_rtti.__typeName === 'jsoop$ns_rtti')) {
+
+        //use global as current namespace root
+        jsoop.__ns_rtti = globalContext.jsoop$ns_rtti;
     }
+    else {
+        //publish current nsroot as global nsroot
+        globalContext.jsoop$ns_rtti = jsoop.__ns_rtti;
+    }
+
+    //helper function
+    var get_ns_root = function jsoop$get_ns_root() {
+        return jsoop.__ns_rtti.ns_root;
+    };
+
+    var get_ns_map = function jsoop$get_ns_map() {
+        return jsoop.__ns_rtti.ns_map;
+    };
+
+    var get_type_map = function jsoop$get_type_map() {
+        return jsoop.__ns_rtti.type_map;
+    };
+
+    var alloc_class_idtr = function jsoop$alloc_class_idtr() {
+        var retval = jsoop.__ns_rtti.class_idtr++;
+    };
 
     ///////////////////////////////////////////////////////////////////////////////
     // setup root RTTI information for exists types
@@ -110,18 +132,13 @@
     Error.__typeName = 'Error';
     Function.__typeName = 'Function';
 
-
     ///////////////////////////////////////////////////////////////////////////////
     // jsoop Type System Implementation
-    jsoop.__ns_root = {};
-    jsoop.__ns_map = {};
-    jsoop.__type_map = {};
-    jsoop.__class_idtr = 0;
 
     jsoop.__gen_unique_name = function jsoop$gen_class_name(prefix, type) {
-        var idtr = jsoop.__class_idtr;
-        jsoop.__class_idtr++;
-        return prefix + idtr;
+
+        var class_idtr = alloc_class_idtr();
+        return prefix + class_idtr;
     };
 
     jsoop.__gen_class_name = function jsoop$gen_class_name(type) {
@@ -145,13 +162,15 @@
         thisType.__typeName = name;
 
         //put type into type jsoop registry
-        jsoop.__type_map[name] = thisType;
+        var type_map = get_type_map();
+        type_map[name] = thisType;
         return thisType;
     };
 
     jsoop.getType = function jsoop$getType(fullTypeName) {
         //get type from jsoop type registry
-        var type = jsoop.__type_map[fullTypeName];
+        var type_map = get_type_map();
+        var type = type_map[fullTypeName];
 
         return type;
     };
@@ -186,8 +205,9 @@
     //if check is true, throw jsoop.errorExists when namespace already exists. other, return old namespace.
     jsoop.registerNamespace = function jsoop$registerNamespace(name, check) {
 
-        var root = jsoop.__ns_root;
-        var retval = jsoop.__ns_map[name];
+        var root = get_ns_root();
+        var ns_map = get_ns_map();
+        var retval = ns_map[name];
 
         if (retval) {
             if (!!check) {
@@ -221,15 +241,16 @@
         }
 
         //return last part of namespace, and fill namespace mapping.
-        jsoop.__ns_map[name] = retval = ns_itor;
+        ns_map[name] = retval = ns_itor;
         return retval;
     };
 
     //require namespace
     //if check is true, throw jsoop.errorNotExists when namespace not exists. other, return undefined
     jsoop.ns = jsoop.namespace = function jsoop$namespace(name, check) {
-        var root = jsoop.__ns_root;
-        var retval = jsoop.__ns_map[name];
+        var root = get_ns_root();
+        var ns_map = get_ns_map();
+        var retval = ns_map[name];
 
         if (retval) {
             return retval;
@@ -249,7 +270,7 @@
             ns_itor = ns_next;
         }
 
-        jsoop.__ns_map[name] = retval = ns_itor;
+        ns_map[name] = retval = ns_itor;
 
         return retval;
     };
@@ -1219,7 +1240,7 @@
     var jsoopNS = jsoop.registerNamespace('jsoop');
     jsoop.Exports(jsoop, jsoopNS);
 
-    //exports module symbols to exports
+    //exports module symbols to exports contents
     if (!jsoop.isClientSide()) {
         if (typeof exports !== 'undefined') {
             //node
@@ -1227,8 +1248,11 @@
         }
     }
 
-    //publish jsoop to global context
-    globalContext.jsoop = jsoopNS;
+    //publish jsoop name to global context
+    //First jsoop as finally jsoop rule.
+    if (!globalContext.jsoop || (globalContext.jsoop.__typeName !== 'jsoop')) {
+        globalContext.jsoop = jsoopNS;
+    }
 
 })(this);
 

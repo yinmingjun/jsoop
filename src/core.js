@@ -111,6 +111,10 @@
         return jsoop.__ns_rtti.ns_map;
     };
 
+    var clear_ns_map = function jsoop$clear_ns_map() {
+        jsoop.__ns_rtti.ns_map = {};
+    };
+
     var get_type_map = function jsoop$get_type_map() {
         return jsoop.__ns_rtti.type_map;
     };
@@ -157,12 +161,18 @@
         return jsoop.__gen_unique_name("js_module$", type);
     };
 
-    //设置TypeName，返回thisType
-    jsoop.setTypeName = function jsoop$setTypeName(thisType, name) {
+    //set TypeName of thisType，and return thisType
+    //if skipOverride is true, don't override the global type of type map
+    jsoop.setTypeName = function jsoop$setTypeName(thisType, name, skipOverride) {
         thisType.__typeName = name;
 
-        //put type into type jsoop registry
         var type_map = get_type_map();
+
+        if (skipOverride && type_map[name]) {
+            return thisType;
+        }
+
+        //put type into type jsoop registry
         type_map[name] = thisType;
         return thisType;
     };
@@ -201,39 +211,37 @@
         }
     };
 
-    //register namespace
-    //if check is true, throw jsoop.errorExists when namespace already exists. other, return old namespace.
-    jsoop.registerNamespace = function jsoop$registerNamespace(name, check) {
+    //register namespace, default behevior is create a new namespace.
+    //if skipOverride is true, return old namespace when exists. Otherwise, create a new namespace when one exists.
+    jsoop.registerNamespace = function jsoop$registerNamespace(name, skipOverride) {
 
         var root = get_ns_root();
         var ns_map = get_ns_map();
         var retval = ns_map[name];
 
         if (retval) {
-            if (!!check) {
-                throw jsoop.errorExists('namespace [' + name + ']');
+            //don't create new namespace, return exists one
+            if (skipOverride) {
+                return retval;
             }
-            return retval;
         }
 
         var ns_itor = root;
         var nameParts = name.split('.');
 
-        for (var i = 0; i < nameParts.length; i++) {
+        for (var i = 0, ilen = nameParts.length; i < ilen; i++) {
             //get next part from parent namespace
             var part = nameParts[i];
             var ns_next = ns_itor[part];
 
-            if (!ns_next) {
+            //just create the last level of namespace, that normally is root namespace of a class lib
+            if (!ns_next || (!skipOverride && (i === ilen - 1))) {
+                if (ns_next) {
+                    //override the exist namespace, clear namespace map
+                    clear_ns_map();
+                }
                 //create one if namespace don't exists.
                 ns_itor[part] = ns_next = new jsoop.__ns(nameParts.slice(0, i + 1).join('.'));
-            }
-            else {
-                //if all namespace exists, check error.
-                if ((i == (nameParts.length - 1)) && check) {
-                    //if all nameParts exists, throw errorExists
-                    throw jsoop.errorExists('namespace [' + name + ']');
-                }
             }
 
             //navigate to next namespace level
@@ -246,8 +254,8 @@
     };
 
     //require namespace
-    //if check is true, throw jsoop.errorNotExists when namespace not exists. other, return undefined
-    jsoop.ns = jsoop.namespace = function jsoop$namespace(name, check) {
+    //if checkExists is true, throw jsoop.errorNotExists when namespace not exists. other, return undefined
+    jsoop.ns = jsoop.namespace = function jsoop$namespace(name, checkExists) {
         var root = get_ns_root();
         var ns_map = get_ns_map();
         var retval = ns_map[name];
@@ -264,8 +272,11 @@
             var part = nameParts[i];
             var ns_next = ns_itor[part];
 
-            if (!ns_next && check) {
-                throw jsoop.errorNotExists('namespace [' + name + ']');
+            if (!ns_next) {
+                if (checkExists) {
+                    throw jsoop.errorNotExists('namespace [' + name + ']');
+                }
+                return null;
             }
             ns_itor = ns_next;
         }
@@ -1168,7 +1179,7 @@
     //EventArgs class
     jsoop.EventArgs = function jsoop_EventArgs() { };
 
-    jsoop.registerClass(jsoop.setTypeName(jsoop.EventArgs, 'jsoop.EventArgs'));
+    jsoop.registerClass(jsoop.setTypeName(jsoop.EventArgs, 'jsoop.EventArgs', true));
 
     jsoop.EventArgs.Empty = new jsoop.EventArgs();
 
@@ -1179,45 +1190,53 @@
         this._list = {};
     };
 
-    function jsoop_EventHandlerList$_addHandler(id, handler) {
-        jsoop.arrayAdd(this._getEvent(id, true), handler);
+    function jsoop_EventHandlerList$_addHandler(name, handler) {
+        var eventQueue = this._getEventQueue(name, true);
+        jsoop.arrayAdd(eventQueue, handler);
     }
 
-    function jsoop_EventHandlerList$addHandler(id, handler) {
-        this._addHandler(id, handler);
+    function jsoop_EventHandlerList$addHandler(name, handler) {
+        this._addHandler(name, handler);
     }
 
-    function jsoop_EventHandlerList$_removeHandler(id, handler) {
-        var evt = this._getEvent(id);
-        if (!evt) return;
-        jsoop.arrayRemove(evt, handler);
+    function jsoop_EventHandlerList$_removeHandler(name, handler) {
+        var eventQueue = this._getEventQueue(name);
+
+        if (!eventQueue) return;
+
+        jsoop.arrayRemove(eventQueue, handler);
     }
 
-    function jsoop_EventHandlerList$removeHandler(id, handler) {
-        this._removeHandler(id, handler);
+    function jsoop_EventHandlerList$removeHandler(name, handler) {
+        this._removeHandler(name, handler);
     }
 
-    function jsoop_EventHandlerList$getHandler(id) {
-        var evt = this._getEvent(id);
-        if (!evt || (evt.length === 0)) return null;
-        evt = jsoop.arrayClone(evt);
+    function jsoop_EventHandlerList$getHandler(name) {
+        var eventQueue = this._getEventQueue(name);
+
+        if (!eventQueue || (eventQueue.length === 0))
+            return null;
+
+        eventQueue = jsoop.arrayClone(eventQueue);
+
         return function (source, args) {
-            for (var i = 0, l = evt.length; i < l; i++) {
-                evt[i](source, args);
+            for (var i = 0, ilen = eventQueue.length; i < ilen; i++) {
+                eventQueue[i](source, args);
             }
         };
     }
 
-    function jsoop_EventHandlerList$_getEvent(id, create) {
-        if (!this._list[id]) {
+    function jsoop_EventHandlerList$_getEventQueue(name, create) {
+        var eventQueue = this._list[name];
+        if (!eventQueue) {
             if (!create) return null;
-            this._list[id] = [];
+            this._list[name] = eventQueue = [];
         }
-        return this._list[id];
+        return eventQueue;
     }
 
-    function jsoop_EventHandlerList$raiseEvent(id, source, args) {
-        var handler = this.getHandler(id);
+    function jsoop_EventHandlerList$raiseEvent(name, source, args) {
+        var handler = this.getHandler(name);
 
         if (handler) {
             handler(source, args);
@@ -1230,15 +1249,11 @@
         _removeHandler: jsoop_EventHandlerList$_removeHandler,
         removeHandler: jsoop_EventHandlerList$removeHandler,
         getHandler: jsoop_EventHandlerList$getHandler,
-        _getEvent: jsoop_EventHandlerList$_getEvent,
+        _getEventQueue: jsoop_EventHandlerList$_getEventQueue,
         raiseEvent: jsoop_EventHandlerList$raiseEvent
     };
 
-    jsoop.registerClass(jsoop.setTypeName(jsoop.EventHandlerList, 'jsoop.EventHandlerList'));
-
-    //register jsoop namespace, and publish all API into it.
-    var jsoopNS = jsoop.registerNamespace('jsoop');
-    jsoop.Exports(jsoop, jsoopNS);
+    jsoop.registerClass(jsoop.setTypeName(jsoop.EventHandlerList, 'jsoop.EventHandlerList', true));
 
     //exports module symbols to exports contents
     if (!jsoop.isClientSide()) {
@@ -1251,6 +1266,17 @@
     //publish jsoop name to global context
     //First jsoop as finally jsoop rule.
     if (!globalContext.jsoop || (globalContext.jsoop.__typeName !== 'jsoop')) {
+        //register jsoop namespace, and publish all API into it.
+        var jsoopNS = jsoop.ns('jsoop');
+
+        if (!jsoopNS) {
+            //jsoop namespace don't exists, create one
+            jsoopNS = jsoop.registerNamespace('jsoop');
+
+            //then, publish all method to jsoopNS
+            jsoop.Exports(jsoop, jsoopNS);
+        }
+
         globalContext.jsoop = jsoopNS;
     }
 

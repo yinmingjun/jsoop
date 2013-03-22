@@ -20,6 +20,7 @@ and keep the feature that it can also work on client side.
 -----------
 
   * Support class registration, inheritance, class type query, namespace registration etc.
+  * Support publish namespace and type into global context.
   * Support class, enum, interface, module.
   * Supports node.js
   * Supports client side
@@ -33,18 +34,21 @@ base class or module's member into current class's prototype, and so on.
 
 All the type information is maintained transparently, and it's load is easy to estimate.
 
-## Why use Namespace
+## How use Namespace
 --------------------
 
 jsoop provide the way that register namespace into jsoop. All namespace that register into
 jsoop are maintained by jsoop. These registered namespaces can be load later by current or 
-other modules. 
+other modules.  
 
 This feature support to export complex API to nodejs. The user of jsoop can access the class
-lib by query namespace and index the target class by namespace's hierachy. 
+lib by query namespace and index the target class by namespace's hierachy.   
 
 I suggest that class libraries that use jsoop can just export it's root namespace as it's 
-export contents, and use the export name 'rootns'. 
+export contents, and use the export name 'rootns'.  
+
+By default, register namespace is always create a new namespace. Also, the registration of
+type is always override the exists type.
 
 ## Use jsoop in Multiple Module
 -------------------------------

@@ -507,7 +507,14 @@
     };
 
     jsoop.createInstance = function jsoop$createInstance(fullTypeName, args) {
-        var type = jsoop.getType(fullTypeName);
+        var type = null;
+
+        if (jsoop.isString(fullTypeName)) {
+            type = jsoop.getType(fullTypeName);
+        }
+        else {
+            type = fullTypeName;
+        }
 
         if (!type) {
             throw jsoop.errorInvalidOperation('Invalidate type name:[' + fullTypeName + ']!');
